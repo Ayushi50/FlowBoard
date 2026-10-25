@@ -24,6 +24,17 @@ Configuration is environment-variable based (see `.env.example` and `backend/src
 
 `render.yaml` is a Blueprint: push the repo to GitHub, then Render > New > Blueprint. It creates a Postgres database, the API (built from `backend/Dockerfile`, because Render has no native Java runtime) and the static frontend, which proxies `/api/*` to the API so no CORS setup is needed. If you rename the API service, update the rewrite destination in `render.yaml`. Set `SEED_DEMO=false` for real use.
 
+## Invitation emails
+
+Set these environment variables on the backend (locally or on Render); without `SPRING_MAIL_HOST` nothing is emailed and the Team page copies the link instead:
+
+| Variable | Example |
+|---|---|
+| `SPRING_MAIL_HOST` / `SPRING_MAIL_PORT` | `smtp.gmail.com` / `587` (STARTTLS) |
+| `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` | your address / an app password (Gmail: Google Account > Security > App passwords) |
+| `MAIL_FROM` | sender address, usually the username |
+| `APP_BASE_URL` | where the web app lives, e.g. `http://localhost:5173` or your Render frontend URL |
+
 ## Tests
 
 | Layer | Command | What it covers |
@@ -126,7 +137,7 @@ Operational: structured JSON logs with a request id, Micrometer HTTP histograms 
 ## Known limitations
 
 - File attachments store **metadata only** (name, type, size); no binary storage.
-- Invitations produce a shareable link; no email is sent. No password reset, email verification or rate limiting.
+- Invitations are emailed over SMTP when configured (below); otherwise the UI falls back to a copyable link. No password reset, email verification or rate limiting.
 - Mentions are chosen from a picker and sent as ids; the comment body keeps plain `@Name` text.
 
 Load-test method and measured results: [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).

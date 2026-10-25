@@ -4,6 +4,7 @@ import com.flowboard.common.ApiException;
 import com.flowboard.security.AccessService;
 import com.flowboard.security.CurrentUser;
 import com.flowboard.user.User;
+import com.flowboard.user.UserRepository;
 import com.flowboard.workspace.WorkspaceDtos.*;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -23,13 +24,25 @@ public class InvitationService {
     private final WorkspaceMembershipRepository memberships;
     private final WorkspaceRepository workspaces;
     private final AccessService access;
+    private final InvitationMailer mailer;
+    private final UserRepository users;
 
     public InvitationService(WorkspaceInvitationRepository invitations, WorkspaceMembershipRepository memberships,
-                             WorkspaceRepository workspaces, AccessService access) {
+                             WorkspaceRepository workspaces, AccessService access,
+                             InvitationMailer mailer, UserRepository users) {
         this.invitations = invitations;
         this.memberships = memberships;
         this.workspaces = workspaces;
         this.access = access;
+        this.mailer = mailer;
+        this.users = users;
+    }
+
+    /** Emails a committed invitation; a mail failure never loses the invitation. Call after {@link #invite}. */
+    public InvitationResponse notifyInvitee(UUID wsId, InvitationResponse created) {
+        String workspaceName = workspaces.findById(wsId).map(Workspace::getName).orElse("a workspace");
+        String inviter = users.findById(CurrentUser.id()).map(User::getDisplayName).orElse("A teammate");
+        return created.withEmailSent(mailer.send(created.email(), workspaceName, inviter, created.role(), created.token()));
     }
 
     @Transactional

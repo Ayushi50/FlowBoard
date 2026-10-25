@@ -30,6 +30,19 @@ services:
         sync: false   # set to the frontend URL, e.g. https://flowboard-web.onrender.com
       - key: SEED_DEMO
         value: "true"
+      # Invitation emails (any SMTP provider: Gmail app password, Brevo, Resend, SendGrid...). Without a host, no email is sent.
+      - key: APP_BASE_URL
+        sync: false   # frontend URL, e.g. https://flowboard-web.onrender.com
+      - key: SPRING_MAIL_HOST
+        sync: false
+      - key: SPRING_MAIL_PORT
+        value: "587"
+      - key: SPRING_MAIL_USERNAME
+        sync: false
+      - key: SPRING_MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false   # sender address, usually the same as the SMTP username
 
   - type: web
     name: flowboard-web

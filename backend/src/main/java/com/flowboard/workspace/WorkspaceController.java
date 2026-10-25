@@ -71,7 +71,7 @@ public class WorkspaceController {
     @PostMapping("/workspaces/{id}/invitations")
     @ResponseStatus(HttpStatus.CREATED)
     public InvitationResponse invite(@PathVariable UUID id, @Valid @RequestBody InviteRequest req) {
-        return invitations.invite(id, req);
+        return invitations.notifyInvitee(id, invitations.invite(id, req));
     }
 
     @DeleteMapping("/workspaces/{id}/invitations/{invitationId}")

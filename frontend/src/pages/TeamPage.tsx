@@ -36,8 +36,12 @@ export function TeamPage() {
     try {
       const inv = await m.invite.mutateAsync({ email, role })
       setEmail('')
-      await navigator.clipboard?.writeText(`${location.origin}/invite/${inv.token}`).catch(() => undefined)
-      toast.success('Invitation created — the link was copied to your clipboard')
+      if (inv.emailSent) {
+        toast.success(`Invitation emailed to ${inv.email}`)
+      } else {
+        await navigator.clipboard?.writeText(`${location.origin}/invite/${inv.token}`).catch(() => undefined)
+        toast.success('Invitation created, but the email could not be sent — the link was copied to your clipboard')
+      }
     } catch (err) {
       onError(err)
     }
@@ -64,7 +68,7 @@ export function TeamPage() {
             </Select>
             <Button type="submit" variant="primary" disabled={m.invite.isPending}><Mail size={13} /> Send invite</Button>
           </form>
-          <p className="mt-2 text-xs text-muted-foreground">{ROLE_HELP[role]}. Flowboard does not send email; share the generated link with them.</p>
+          <p className="mt-2 text-xs text-muted-foreground">{ROLE_HELP[role]}. The invitee gets an email with a link; you can also copy it below.</p>
           {!!invites?.length && (
             <ul className="mt-4 divide-y divide-border border-t border-border">
               {invites.map((i) => (
