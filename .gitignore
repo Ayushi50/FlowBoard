@@ -1,0 +1,12 @@
+.env
+.DS_Store
+backend/target/
+loadtest/results/*.json
+loadtest/results/*.txt
+.idea/
+*.iml
+node_modules
+dist
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo

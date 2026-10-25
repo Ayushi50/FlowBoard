@@ -1,0 +1,46 @@
+# Render Blueprint: New > Blueprint, pick this repo. Creates Postgres, the API and the static frontend.
+databases:
+  - name: flowboard-db
+    plan: free
+    databaseName: flowboard
+    user: flowboard
+
+services:
+  - type: web
+    name: flowboard-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /actuator/health/liveness
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: flowboard-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: flowboard-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: flowboard-db, property: database }
+      - key: DB_USER
+        fromDatabase: { name: flowboard-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: flowboard-db, property: password }
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false   # set to the frontend URL, e.g. https://flowboard-web.onrender.com
+      - key: SEED_DEMO
+        value: "true"
+
+  - type: web
+    name: flowboard-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://flowboard-api.onrender.com/api/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
