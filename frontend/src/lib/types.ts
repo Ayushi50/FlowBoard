@@ -44,7 +44,7 @@ export interface Invitation {
   status: string
   createdAt: string
   expiresAt: string
-  emailSent: boolean
+  emailStatus: 'NOT_SENT' | 'QUEUED' | 'SENT' | 'FAILED'
 }
 
 export interface Label {

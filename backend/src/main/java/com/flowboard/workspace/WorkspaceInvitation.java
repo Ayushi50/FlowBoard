@@ -11,6 +11,8 @@ public class WorkspaceInvitation extends BaseEntity {
 
     public enum Status { PENDING, ACCEPTED, REVOKED }
 
+    public enum EmailStatus { NOT_SENT, QUEUED, SENT, FAILED }
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "workspace_id")
     private Workspace workspace;
@@ -28,6 +30,10 @@ public class WorkspaceInvitation extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "email_status", nullable = false)
+    private EmailStatus emailStatus = EmailStatus.NOT_SENT;
 
     @Column(name = "invited_by", nullable = false)
     private UUID invitedBy;
@@ -58,5 +64,8 @@ public class WorkspaceInvitation extends BaseEntity {
     public Status getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getExpiresAt() { return expiresAt; }
+    public EmailStatus getEmailStatus() { return emailStatus; }
     public void setStatus(Status status) { this.status = status; }
+    public void setEmailStatus(EmailStatus emailStatus) { this.emailStatus = emailStatus; }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
 }

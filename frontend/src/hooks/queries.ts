@@ -14,7 +14,13 @@ export const useMembers = (wsId: string) =>
   useQuery({ queryKey: ['members', wsId], queryFn: () => api.get<Member[]>(`/workspaces/${wsId}/members`) })
 
 export const useInvitations = (wsId: string, enabled: boolean) =>
-  useQuery({ queryKey: ['invitations', wsId], enabled, queryFn: () => api.get<Invitation[]>(`/workspaces/${wsId}/invitations`) })
+  useQuery({
+    queryKey: ['invitations', wsId],
+    enabled,
+    queryFn: () => api.get<Invitation[]>(`/workspaces/${wsId}/invitations`),
+    // emails are sent asynchronously: keep polling until nothing is still QUEUED
+    refetchInterval: (q) => (q.state.data?.some((i) => i.emailStatus === 'QUEUED') ? 2_000 : false),
+  })
 
 export const useLabels = (wsId: string) =>
   useQuery({ queryKey: ['labels', wsId], queryFn: () => api.get<Label[]>(`/workspaces/${wsId}/labels`) })
@@ -283,6 +289,7 @@ export function useWorkspaceMutations(wsId: string) {
       mutationFn: (v: { email: string; role: Role }) => api.post<Invitation>(`/workspaces/${wsId}/invitations`, v),
       onSuccess: refreshPeople,
     }),
+    resend: useMutation({ mutationFn: (id: string) => api.post<Invitation>(`/workspaces/${wsId}/invitations/${id}/resend`, {}), onSuccess: refreshPeople }),
     revoke: useMutation({ mutationFn: (id: string) => api.delete(`/workspaces/${wsId}/invitations/${id}`), onSuccess: refreshPeople }),
     createLabel: useMutation({
       mutationFn: (v: { name: string; color: string }) => api.post<Label>(`/workspaces/${wsId}/labels`, v),

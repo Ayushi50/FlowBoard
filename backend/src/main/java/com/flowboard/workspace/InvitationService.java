@@ -25,24 +25,48 @@ public class InvitationService {
     private final WorkspaceRepository workspaces;
     private final AccessService access;
     private final InvitationMailer mailer;
+    private final InvitationDispatcher dispatcher;
     private final UserRepository users;
 
     public InvitationService(WorkspaceInvitationRepository invitations, WorkspaceMembershipRepository memberships,
                              WorkspaceRepository workspaces, AccessService access,
-                             InvitationMailer mailer, UserRepository users) {
+                             InvitationMailer mailer, InvitationDispatcher dispatcher, UserRepository users) {
         this.invitations = invitations;
         this.memberships = memberships;
         this.workspaces = workspaces;
         this.access = access;
         this.mailer = mailer;
+        this.dispatcher = dispatcher;
         this.users = users;
     }
 
-    /** Emails a committed invitation; a mail failure never loses the invitation. Call after {@link #invite}. */
-    public InvitationResponse notifyInvitee(UUID wsId, InvitationResponse created) {
-        String workspaceName = workspaces.findById(wsId).map(Workspace::getName).orElse("a workspace");
-        String inviter = users.findById(CurrentUser.id()).map(User::getDisplayName).orElse("A teammate");
-        return created.withEmailSent(mailer.send(created.email(), workspaceName, inviter, created.role(), created.token()));
+    /** Hands a committed invitation to the async mailer; the request never waits on SMTP. Call after the transaction. */
+    public InvitationResponse dispatch(UUID wsId, InvitationResponse saved) {
+        if (WorkspaceInvitation.EmailStatus.valueOf(saved.emailStatus()) == WorkspaceInvitation.EmailStatus.QUEUED) {
+            String workspaceName = workspaces.findById(wsId).map(Workspace::getName).orElse("a workspace");
+            String inviter = users.findById(CurrentUser.id()).map(User::getDisplayName).orElse("A teammate");
+            dispatcher.deliver(saved.id(), saved.email(), workspaceName, inviter, saved.role(), saved.token());
+        }
+        return saved;
+    }
+
+    private WorkspaceInvitation.EmailStatus initialEmailStatus() {
+        return mailer.isConfigured() ? WorkspaceInvitation.EmailStatus.QUEUED : WorkspaceInvitation.EmailStatus.NOT_SENT;
+    }
+
+    /** Re-sends the email for a pending invitation and gives it a fresh 7 days. */
+    @Transactional
+    public InvitationResponse resend(UUID wsId, UUID invitationId) {
+        access.requireRole(wsId, Role.ADMIN);
+        WorkspaceInvitation inv = invitations.findById(invitationId)
+                .filter(i -> i.getWorkspace().getId().equals(wsId))
+                .orElseThrow(() -> ApiException.notFound("Invitation"));
+        if (inv.getStatus() != WorkspaceInvitation.Status.PENDING) {
+            throw ApiException.conflict("INVITATION_UNUSABLE", "This invitation is no longer pending");
+        }
+        inv.setExpiresAt(Instant.now().plus(Duration.ofDays(7)));
+        inv.setEmailStatus(initialEmailStatus());
+        return InvitationResponse.of(inv);
     }
 
     @Transactional
@@ -54,6 +78,7 @@ public class InvitationService {
         RANDOM.nextBytes(bytes);
         WorkspaceInvitation inv = new WorkspaceInvitation(workspaces.getReferenceById(wsId), email, req.role(),
                 HexFormat.of().formatHex(bytes), CurrentUser.id(), Instant.now().plus(Duration.ofDays(7)));
+        inv.setEmailStatus(initialEmailStatus());
         return InvitationResponse.of(invitations.save(inv));
     }
 

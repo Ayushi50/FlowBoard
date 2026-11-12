@@ -1,4 +1,4 @@
-import { Copy, Mail, Trash2 } from 'lucide-react'
+import { Copy, Mail, RefreshCw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Avatar } from '@/components/ui/avatar'
@@ -19,6 +19,13 @@ const ROLE_HELP: Record<Role, string> = {
   MEMBER: 'Work on tasks in projects they belong to',
 }
 
+const EMAIL_LABEL = { NOT_SENT: 'link only', QUEUED: 'sending…', SENT: 'email sent', FAILED: 'email failed' } as const
+
+function EmailBadge({ status }: { status: keyof typeof EMAIL_LABEL }) {
+  const tone = status === 'FAILED' ? 'bg-red-500/10 text-red-600' : status === 'SENT' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'
+  return <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[11px] ${tone}`}>{EMAIL_LABEL[status]}</span>
+}
+
 export function TeamPage() {
   const { wsId, isAdmin } = useWorkspace()
   const { user } = useAuth()
@@ -36,16 +43,22 @@ export function TeamPage() {
     try {
       const inv = await m.invite.mutateAsync({ email, role })
       setEmail('')
-      if (inv.emailSent) {
-        toast.success(`Invitation emailed to ${inv.email}`)
+      if (inv.emailStatus === 'QUEUED') {
+        toast.success(`Sending invitation email to ${inv.email}…`)
       } else {
         await navigator.clipboard?.writeText(`${location.origin}/invite/${inv.token}`).catch(() => undefined)
-        toast.success('Invitation created, but the email could not be sent — the link was copied to your clipboard')
+        toast.success('Invitation created, but email is not set up — the link was copied to your clipboard')
       }
     } catch (err) {
       onError(err)
     }
   }
+
+  const resend = (id: string, to: string) =>
+    m.resend.mutate(id, {
+      onError,
+      onSuccess: (inv) => (inv.emailStatus === 'QUEUED' ? toast.success(`Resending invitation to ${to}…`) : toast.error('Email is not set up — copy the link instead')),
+    })
 
   const remove = async (id: string, name: string, self: boolean) => {
     const ok = await confirm({
@@ -73,7 +86,8 @@ export function TeamPage() {
             <ul className="mt-4 divide-y divide-border border-t border-border">
               {invites.map((i) => (
                 <li key={i.id} className="flex items-center gap-2 py-2 text-[13px]">
-                  <span className="flex-1 truncate">{i.email} <span className="text-xs text-muted-foreground">· {i.role.toLowerCase()} · expires {formatDate(i.expiresAt)}</span></span>
+                  <span className="flex-1 truncate">{i.email} <span className="text-xs text-muted-foreground">· {i.role.toLowerCase()} · expires {formatDate(i.expiresAt)}</span> <EmailBadge status={i.emailStatus} /></span>
+                  <Button size="sm" disabled={m.resend.isPending} onClick={() => resend(i.id, i.email)}><RefreshCw size={12} /> Resend</Button>
                   <Button size="sm" onClick={() => navigator.clipboard.writeText(`${location.origin}/invite/${i.token}`).then(() => toast.success('Link copied'))}><Copy size={12} /> Copy link</Button>
                   <Button size="sm" variant="ghost" aria-label={`Revoke invitation for ${i.email}`} onClick={() => m.revoke.mutate(i.id, { onError })}><Trash2 size={12} /></Button>
                 </li>

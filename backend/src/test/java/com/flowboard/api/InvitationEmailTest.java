@@ -10,6 +10,7 @@ import com.flowboard.workspace.Role;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import static org.awaitility.Awaitility.await;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,11 @@ class InvitationEmailTest extends AbstractIntegrationTest {
         RecordingMailer() {
             super(new org.springframework.beans.factory.support.StaticListableBeanFactory()
                     .getBeanProvider(org.springframework.mail.javamail.JavaMailSender.class), "http://localhost:5173", "");
+        }
+
+        @Override
+        public boolean isConfigured() {
+            return true;
         }
 
         @Override
@@ -62,6 +68,43 @@ class InvitationEmailTest extends AbstractIntegrationTest {
         return api.get(admin, "/api/v1/workspaces").body().get(0).path("id").asText();
     }
 
+    private String statusOf(Session admin, String ws, String email) {
+        for (var i : api.get(admin, "/api/v1/workspaces/" + ws + "/invitations").body()) {
+            if (email.equals(i.path("email").asText())) {
+                return i.path("emailStatus").asText();
+            }
+        }
+        return "";
+    }
+
+    @Test
+    void resendEmailsAgainAndRecoversFromFailure() {
+        Session admin = api.register("Admin", "Acme");
+        String ws = workspaceOf(admin);
+        mailer.succeed = false;
+        Result inv = api.post(admin, "/api/v1/workspaces/" + ws + "/invitations", Map.of("email", "again@person.dev", "role", "MEMBER"));
+        await().untilAsserted(() -> assertThat(statusOf(admin, ws, "again@person.dev")).isEqualTo("FAILED"));
+
+        mailer.succeed = true;
+        Result re = api.post(admin, "/api/v1/workspaces/" + ws + "/invitations/" + inv.text("id") + "/resend", Map.of());
+
+        assertThat(re.status()).isEqualTo(200);
+        await().untilAsserted(() -> assertThat(statusOf(admin, ws, "again@person.dev")).isEqualTo("SENT"));
+        assertThat(mailer.sent).hasSize(2);
+    }
+
+    @Test
+    void cannotResendARevokedInvitation() {
+        Session admin = api.register("Admin", "Acme");
+        String ws = workspaceOf(admin);
+        Result inv = api.post(admin, "/api/v1/workspaces/" + ws + "/invitations", Map.of("email", "gone@person.dev", "role", "MEMBER"));
+        api.delete(admin, "/api/v1/workspaces/" + ws + "/invitations/" + inv.text("id"));
+
+        Result re = api.post(admin, "/api/v1/workspaces/" + ws + "/invitations/" + inv.text("id") + "/resend", Map.of());
+
+        assertThat(re.status()).isEqualTo(409);
+    }
+
     @Test
     void inviteSendsEmailAndReportsIt() {
         Session admin = api.register("Admin", "Acme");
@@ -70,7 +113,8 @@ class InvitationEmailTest extends AbstractIntegrationTest {
         Result inv = api.post(admin, "/api/v1/workspaces/" + ws + "/invitations", Map.of("email", "new@person.dev", "role", "MEMBER"));
 
         assertThat(inv.status()).isEqualTo(201);
-        assertThat(inv.body().path("emailSent").asBoolean()).isTrue();
+        assertThat(inv.text("emailStatus")).isEqualTo("QUEUED");
+        await().untilAsserted(() -> assertThat(statusOf(admin, ws, "new@person.dev")).isEqualTo("SENT"));
         assertThat(mailer.sent).containsExactly(new Sent("new@person.dev", "Acme", "Admin", Role.MEMBER, inv.text("token")));
     }
 
@@ -83,8 +127,7 @@ class InvitationEmailTest extends AbstractIntegrationTest {
         Result inv = api.post(admin, "/api/v1/workspaces/" + ws + "/invitations", Map.of("email", "fail@person.dev", "role", "MEMBER"));
 
         assertThat(inv.status()).isEqualTo(201);
-        assertThat(inv.body().path("emailSent").asBoolean()).isFalse();
-        assertThat(api.get(admin, "/api/v1/workspaces/" + ws + "/invitations").body().toString()).contains("fail@person.dev");
+        await().untilAsserted(() -> assertThat(statusOf(admin, ws, "fail@person.dev")).isEqualTo("FAILED"));
     }
 
     @Test

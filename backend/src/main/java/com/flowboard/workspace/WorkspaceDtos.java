@@ -29,14 +29,10 @@ public final class WorkspaceDtos {
     }
 
     public record InvitationResponse(UUID id, String email, Role role, String token, String status,
-                                     Instant createdAt, Instant expiresAt, boolean emailSent) {
+                                     Instant createdAt, Instant expiresAt, String emailStatus) {
         public static InvitationResponse of(WorkspaceInvitation i) {
             return new InvitationResponse(i.getId(), i.getEmail(), i.getRole(), i.getToken(),
-                    i.getStatus().name(), i.getCreatedAt(), i.getExpiresAt(), false);
-        }
-
-        public InvitationResponse withEmailSent(boolean sent) {
-            return new InvitationResponse(id, email, role, token, status, createdAt, expiresAt, sent);
+                    i.getStatus().name(), i.getCreatedAt(), i.getExpiresAt(), i.getEmailStatus().name());
         }
     }
 
