@@ -1,6 +1,23 @@
 # Flowboard
 
-A project management and team task board in the spirit of Linear / Trello: workspaces, projects, Kanban board with drag-and-drop, sortable list, timeline, task detail panel with comments and mentions, notifications, role-based permissions, light/dark mode.
+**A project management and team task board in the spirit of Linear / Trello.** Kanban board with drag-and-drop, sortable list, timeline, task detail panel with comments and mentions, notifications, role-based permissions and light/dark mode.
+
+**Live demo: <https://flowboard-web-46vf.onrender.com>**
+
+| | |
+|---|---|
+| Email | `demo@flowboard.dev` |
+| Password | `Password123!` |
+
+> Hosted on free tiers, so the first request after a quiet period can take about a minute while the API wakes up.
+
+![Overview dashboard](docs/screenshots/overview.png)
+
+| Kanban board | Task detail panel |
+|---|---|
+| ![Board](docs/screenshots/board.png) | ![Task panel](docs/screenshots/task.png) |
+
+![Timeline with milestones](docs/screenshots/timeline.png)
 
 **Stack:** Java 21 · Spring Boot 3.5 (Web, Security, Data JPA, Validation, Actuator/Micrometer) · PostgreSQL 16 + Flyway · React 19 + TypeScript · Tailwind CSS 4 · Radix UI primitives (shadcn/ui-style components) · TanStack Query · dnd-kit.
 
