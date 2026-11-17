@@ -53,7 +53,7 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://flowboard-api.onrender.com/api/*
+        destination: https://flowboard-api-8h3y.onrender.com/api/*
       - type: rewrite
         source: /*
         destination: /index.html
