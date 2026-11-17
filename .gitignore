@@ -10,3 +10,5 @@ dist
 frontend/playwright-report/
 frontend/test-results/
 *.tsbuildinfo
+.neon
+.env.local
