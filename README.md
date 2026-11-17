@@ -22,7 +22,7 @@ Configuration is environment-variable based (see `.env.example` and `backend/src
 
 ## Deploy (Render)
 
-`render.yaml` is a Blueprint: push the repo to GitHub, then Render > New > Blueprint. It creates a Postgres database, the API (built from `backend/Dockerfile`, because Render has no native Java runtime) and the static frontend, which proxies `/api/*` to the API so no CORS setup is needed. If you rename the API service, update the rewrite destination in `render.yaml`. Set `SEED_DEMO=false` for real use.
+`render.yaml` is a Blueprint: push the repo to GitHub, then Render > New > Blueprint. It creates the API (built from `backend/Dockerfile`, because Render has no native Java runtime) and the static frontend, which proxies `/api/*` to the API so no CORS setup is needed. If you rename the API service, update the rewrite destination in `render.yaml`. Set `SEED_DEMO=false` for real use.
 
 ## Invitation emails
 
