@@ -1,5 +1,7 @@
 # Flowboard
 
+[![CI](https://github.com/Ayushi50/FlowBoard/actions/workflows/ci.yml/badge.svg)](https://github.com/Ayushi50/FlowBoard/actions/workflows/ci.yml)
+
 **A project management and team task board in the spirit of Linear / Trello.** Kanban board with drag-and-drop, sortable list, timeline, task detail panel with comments and mentions, notifications, role-based permissions and light/dark mode.
 
 **Live demo: <https://flowboard-web-46vf.onrender.com>**
